@@ -3,12 +3,23 @@ import AVFoundation
 import Vision
 import CoreImage
 
-// Private CoreGraphics API for window blur
-@_silgen_name("CGSMainConnectionID")
-func CGSMainConnectionID() -> UInt32
+// MARK: - Dynamic Private API Loading
+// Use dlsym for private CoreGraphics APIs to avoid dyld failures on newer macOS versions
+private let cgsMainConnectionID: (@convention(c) () -> UInt32)? = {
+    guard let handle = dlopen(nil, RTLD_LAZY) else { return nil }
+    guard let sym = dlsym(handle, "CGSMainConnectionID") else { return nil }
+    return unsafeBitCast(sym, to: (@convention(c) () -> UInt32).self)
+}()
 
-@_silgen_name("CGSSetWindowBackgroundBlurRadius")
-func CGSSetWindowBackgroundBlurRadius(_ cid: UInt32, _ wid: UInt32, _ radius: Int32) -> Int32
+private let cgsSetWindowBackgroundBlurRadius: (@convention(c) (UInt32, UInt32, Int32) -> Int32)? = {
+    guard let handle = dlopen(nil, RTLD_LAZY) else { return nil }
+    guard let sym = dlsym(handle, "CGSSetWindowBackgroundBlurRadius") else { return nil }
+    return unsafeBitCast(sym, to: (@convention(c) (UInt32, UInt32, Int32) -> Int32).self)
+}()
+
+private var privateAPIsAvailable: Bool {
+    return cgsMainConnectionID != nil && cgsSetWindowBackgroundBlurRadius != nil
+}
 
 // MARK: - Calibration View
 class CalibrationView: NSView {
@@ -631,9 +642,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             currentBlurRadius = max(currentBlurRadius - 3, targetBlurRadius)
         }
 
-        let cid = CGSMainConnectionID()
-        for window in windows {
-            _ = CGSSetWindowBackgroundBlurRadius(cid, UInt32(window.windowNumber), currentBlurRadius)
+        // Use private APIs if available, otherwise fall back to alpha overlay
+        if let getConnectionID = cgsMainConnectionID,
+           let setBlurRadius = cgsSetWindowBackgroundBlurRadius {
+            let cid = getConnectionID()
+            for window in windows {
+                _ = setBlurRadius(cid, UInt32(window.windowNumber), currentBlurRadius)
+            }
+        } else {
+            // Fallback: use semi-transparent overlay instead of blur
+            let alpha = CGFloat(currentBlurRadius) / 64.0 * 0.7
+            for window in windows {
+                window.backgroundColor = NSColor.black.withAlphaComponent(alpha)
+            }
         }
     }
 

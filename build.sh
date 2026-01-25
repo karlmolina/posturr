@@ -7,8 +7,8 @@ set -e
 
 # Configuration
 APP_NAME="Posturr"
-BUNDLE_ID="com.posturr.app"
-VERSION="1.0.0"
+BUNDLE_ID="com.posturr.posturr"
+VERSION="1.0.1"
 MIN_MACOS="13.0"
 
 # Directories
@@ -125,6 +125,10 @@ fi
 
 # Set executable permission
 chmod +x "$MACOS_DIR/$APP_NAME"
+
+# Ad-hoc sign the app bundle for macOS Gatekeeper compatibility
+echo "Signing app bundle..."
+codesign --force --deep --sign - "$APP_BUNDLE"
 
 # Verify the build
 echo ""
