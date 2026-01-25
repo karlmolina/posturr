@@ -331,6 +331,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var targetBlurRadius: Int32 = 0
     var isEnabled = true
     let captureQueue = DispatchQueue(label: "capture.queue")
+    var selectedCameraID: String?  // nil = auto-select
+    var cameraMenuItem: NSMenuItem!
 
     // Calibration
     var calibrationController: CalibrationWindowController?
@@ -481,6 +483,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let recalibrateItem = NSMenuItem(title: "Recalibrate", action: #selector(recalibrate), keyEquivalent: "r")
         recalibrateItem.target = self
         menu.addItem(recalibrateItem)
+
+        // Camera submenu
+        cameraMenuItem = NSMenuItem(title: "Camera", action: nil, keyEquivalent: "")
+        cameraMenuItem.submenu = NSMenu()
+        menu.addItem(cameraMenuItem)
+        updateCameraMenu()
 
         // Sensitivity submenu
         let sensitivityItem = NSMenuItem(title: "Sensitivity", action: nil, keyEquivalent: "")
@@ -653,6 +661,83 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func getAvailableCameras() -> [AVCaptureDevice] {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            mediaType: .video,
+            position: .unspecified
+        )
+        return discoverySession.devices
+    }
+
+    func updateCameraMenu() {
+        guard let menu = cameraMenuItem.submenu else { return }
+        menu.removeAllItems()
+
+        let cameras = getAvailableCameras()
+
+        if cameras.isEmpty {
+            let noCamera = NSMenuItem(title: "No cameras found", action: nil, keyEquivalent: "")
+            noCamera.isEnabled = false
+            menu.addItem(noCamera)
+            return
+        }
+
+        for camera in cameras {
+            let item = NSMenuItem(title: camera.localizedName, action: #selector(selectCamera(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = camera.uniqueID
+            item.state = (selectedCameraID == camera.uniqueID || (selectedCameraID == nil && camera == cameras.first)) ? .on : .off
+            menu.addItem(item)
+        }
+    }
+
+    @objc func selectCamera(_ sender: NSMenuItem) {
+        guard let cameraID = sender.representedObject as? String else { return }
+        selectedCameraID = cameraID
+
+        // Update menu checkmarks
+        if let menu = sender.menu {
+            for item in menu.items {
+                item.state = (item.representedObject as? String == cameraID) ? .on : .off
+            }
+        }
+
+        // Restart camera with new selection
+        restartCamera()
+    }
+
+    func restartCamera() {
+        captureSession?.stopRunning()
+
+        // Remove existing input
+        if let inputs = captureSession?.inputs {
+            for input in inputs {
+                captureSession?.removeInput(input)
+            }
+        }
+
+        // Find and add new camera
+        let cameras = getAvailableCameras()
+        let camera = cameras.first { $0.uniqueID == selectedCameraID } ?? cameras.first
+
+        guard let selectedCamera = camera,
+              let input = try? AVCaptureDeviceInput(device: selectedCamera) else {
+            statusMenuItem.title = "Status: Camera Error"
+            return
+        }
+
+        captureSession?.addInput(input)
+        statusMenuItem.title = "Status: Monitoring..."
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.captureSession?.startRunning()
+        }
+
+        // Trigger recalibration with new camera
+        startCalibration()
+    }
+
     @objc func toggleCompatibilityMode() {
         useCompatibilityMode.toggle()
         compatibilityModeMenuItem.state = useCompatibilityMode ? .on : .off
@@ -737,11 +822,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         captureSession = AVCaptureSession()
         captureSession?.sessionPreset = .low  // Low resolution is sufficient for pose detection
 
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-                ?? AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: camera) else {
+        // Use selected camera or auto-select
+        let cameras = getAvailableCameras()
+        let camera: AVCaptureDevice?
+
+        if let selectedID = selectedCameraID {
+            camera = cameras.first { $0.uniqueID == selectedID }
+        } else {
+            // Prefer front-facing built-in camera, then any camera
+            camera = cameras.first { $0.position == .front }
+                ?? cameras.first
+        }
+
+        guard let selectedCamera = camera,
+              let input = try? AVCaptureDeviceInput(device: selectedCamera) else {
             statusMenuItem.title = "Status: No Camera"
             return
+        }
+
+        // Store the selected camera ID for menu state
+        if selectedCameraID == nil {
+            selectedCameraID = selectedCamera.uniqueID
         }
 
         captureSession?.addInput(input)
