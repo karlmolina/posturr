@@ -344,8 +344,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var postureRange: CGFloat = 0.2    // Range between good and bad
 
     // Settings
-    var sensitivity: CGFloat = 0.85
-    var deadZone: CGFloat = 0.03
+    var sensitivity: CGFloat = 0.85  // Medium
+    var deadZone: CGFloat = 0.03     // Medium
     var useCompatibilityMode = false
 
     // Detection state
@@ -481,8 +481,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Sensitivity submenu
         let sensitivityItem = NSMenuItem(title: "Sensitivity", action: nil, keyEquivalent: "")
         let sensitivityMenu = NSMenu()
-        for (title, value) in [("Very Low", 0.25), ("Low", 0.4), ("Medium", 0.5), ("High", 0.7), ("Very High", 1.0)] {
-            let item = NSMenuItem(title: title, action: #selector(setSensitivity(_:)), keyEquivalent: "")
+        let sensitivityOptions: [(String, Double, String)] = [
+            ("Very Low", 0.4, "Only major slouching"),
+            ("Low", 0.6, "Allows more movement"),
+            ("Medium", 0.85, "Balanced"),
+            ("High", 0.95, "Reacts to small changes"),
+            ("Very High", 1.0, "Maximum response")
+        ]
+        for (title, value, desc) in sensitivityOptions {
+            let item = NSMenuItem(title: "\(title) — \(desc)", action: #selector(setSensitivity(_:)), keyEquivalent: "")
             item.target = self
             item.tag = Int(value * 100)
             item.state = (sensitivity == CGFloat(value)) ? .on : .off
@@ -494,8 +501,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Dead Zone submenu
         let deadZoneItem = NSMenuItem(title: "Dead Zone", action: nil, keyEquivalent: "")
         let deadZoneMenu = NSMenu()
-        for (title, value) in [("Tiny", 0.02), ("Small", 0.035), ("Medium", 0.05), ("Large", 0.07), ("Very Large", 0.1)] {
-            let item = NSMenuItem(title: title, action: #selector(setDeadZone(_:)), keyEquivalent: "")
+        let deadZoneOptions: [(String, Double, String)] = [
+            ("Very Small", 0.01, "Activates immediately"),
+            ("Small", 0.02, "Strict enforcement"),
+            ("Medium", 0.03, "Balanced"),
+            ("Large", 0.05, "Allows natural movement"),
+            ("Very Large", 0.08, "Only major slouching")
+        ]
+        for (title, value, desc) in deadZoneOptions {
+            let item = NSMenuItem(title: "\(title) — \(desc)", action: #selector(setDeadZone(_:)), keyEquivalent: "")
             item.target = self
             item.tag = Int(value * 1000)
             item.state = (deadZone == CGFloat(value)) ? .on : .off
@@ -511,6 +525,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         compatibilityModeMenuItem.target = self
         compatibilityModeMenuItem.state = useCompatibilityMode ? .on : .off
         menu.addItem(compatibilityModeMenuItem)
+
+        // Hint text for compatibility mode
+        let hintItem = NSMenuItem()
+        let baseFont = NSFont.systemFont(ofSize: 11, weight: .regular)
+        let italicFont = NSFontManager.shared.convert(baseFont, toHaveTrait: .italicFontMask)
+        let hintText = NSAttributedString(
+            string: "  Enable if blur isn't appearing",
+            attributes: [
+                .font: italicFont,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        hintItem.attributedTitle = hintText
+        hintItem.isEnabled = false
+        menu.addItem(hintItem)
 
         menu.addItem(NSMenuItem.separator())
 
