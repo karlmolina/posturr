@@ -43,7 +43,7 @@ If you accidentally denied permission, you can grant it later:
 
 ## Usage
 
-Once launched, Posturr appears in your menu bar with a spine icon. The app continuously monitors your posture and applies screen blur when slouching is detected.
+Once launched, Posturr appears in your menu bar with a person icon. The app continuously monitors your posture and applies screen blur when slouching is detected.
 
 ### Menu Bar Controls
 
