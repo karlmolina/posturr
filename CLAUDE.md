@@ -51,6 +51,9 @@ When implementing features or fixes from GitHub issues, always give credit to th
 - In the GitHub release notes: "Thanks to @username for suggesting this!"
 - In CHANGELOG.md: Add an `### Acknowledgments` section with a link to their GitHub profile
 - In README.md: Add them to the Contributors section with a brief description of their contribution
+- Comment on the issue thanking them and linking to the release
+
+Note: Issues auto-close when referenced with "Closes #N" in commit messages. If you try to close an issue and it's already closed, just add a thank-you comment instead.
 
 ### Update CHANGELOG.md
 After updating the GitHub release notes, also update `CHANGELOG.md` with a new entry:
