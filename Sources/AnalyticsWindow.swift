@@ -12,7 +12,7 @@ class AnalyticsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Posture Analytics"
+        window.title = "Posturr Analytics"
         window.center()
         
         // Hide from Dock initially if main app is hidden, but this is a secondary window.
