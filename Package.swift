@@ -9,8 +9,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Posturr",
-            path: ".",
-            sources: ["main.swift"],
+            path: "Sources",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("AVFoundation"),

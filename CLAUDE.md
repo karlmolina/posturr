@@ -125,7 +125,18 @@ Update version in `build.sh` (VERSION variable) before releasing.
 
 ## Key Files
 
-- `main.swift` - All application code
+### Source Code (in `Sources/`)
+- `main.swift` - App entry point
+- `AppDelegate.swift` - Main app coordinator, state machine, camera capture, posture detection
+- `Models.swift` - Shared types (SettingsKeys, ProfileData, PauseReason, AppState)
+- `Persistence.swift` - SettingsStorage and ProfileStorage classes
+- `DisplayManager.swift` - Display UUID detection and configuration change handling
+- `MenuBar.swift` - MenuBarManager for status bar setup
+- `SettingsWindow.swift` - SwiftUI settings window with SettingsWindowController
+- `CalibrationWindow.swift` - Calibration UI with pulsing ring animation
+- `BlurOverlay.swift` - Private API loading and BlurOverlayManager
+
+### Build & Release
 - `build.sh` - Build script with App Store support
 - `release.sh` - Full GitHub release automation
 - `PRIVACY.md` - Privacy policy for App Store

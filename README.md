@@ -49,11 +49,19 @@ Click the menu bar icon to access:
 - **Status** - Shows current state (Monitoring, Slouching, Good Posture, etc.)
 - **Enabled** - Toggle posture monitoring on/off
 - **Recalibrate** - Reset your baseline posture (sit up straight, then click)
-- **Sensitivity** - Adjust how sensitive the slouch detection is (Low, Medium, High, Very High)
-- **Dead Zone** - Set the tolerance before blur kicks in (None, Small, Medium, Large)
-- **Show in Dock/App Switcher** - Toggle visibility in Dock and Cmd+Tab (auto-opens menu when switching)
-- **Compatibility Mode** - Use public macOS APIs for blur (try this if blur doesn't appear)
-- **Quit** - Exit the application (or press **Escape** anywhere)
+- **Settings** - Open the settings window to configure all options
+- **Quit** - Exit the application
+
+### Settings Window
+
+The Settings window (accessible from the menu bar) provides:
+
+- **Sensitivity** - Adjust how sensitive the slouch detection is (5 levels from Low to Very High)
+- **Dead Zone** - Set the tolerance before blur kicks in (5 levels from None to Very Large)
+- **Blur when away** - Blur screen when you step away from camera
+- **Show in dock** - Show app in Dock and Cmd+Tab app switcher
+- **Pause on the go** - Auto-pause when laptop display becomes the only screen
+- **Compatibility mode** - Use public macOS APIs for blur (try this if blur doesn't appear)
 
 ### Tips for Best Results
 
@@ -109,7 +117,7 @@ swiftc -O \
     -framework Vision \
     -framework CoreImage \
     -o Posturr \
-    main.swift
+    Sources/*.swift
 ```
 
 ## Known Limitations
@@ -142,6 +150,25 @@ Posturr processes all video data locally on your Mac. No images or data are ever
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## Project Structure
+
+```
+posturr/
+├── Sources/
+│   ├── main.swift              # App entry point
+│   ├── AppDelegate.swift       # Main app coordinator and state machine
+│   ├── Models.swift            # Shared types (settings keys, profile data, app state)
+│   ├── Persistence.swift       # Settings and profile storage
+│   ├── DisplayManager.swift    # Display detection and configuration
+│   ├── MenuBar.swift           # Menu bar setup and management
+│   ├── SettingsWindow.swift    # SwiftUI settings window
+│   ├── CalibrationWindow.swift # Calibration UI
+│   └── BlurOverlay.swift       # Screen blur overlay management
+├── build.sh                    # Build script
+├── release.sh                  # Release automation
+└── AppIcon.icns                # App icon
+```
 
 ## Contributing
 

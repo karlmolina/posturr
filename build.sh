@@ -13,7 +13,7 @@ set -e
 # Configuration
 APP_NAME="Posturr"
 BUNDLE_ID="com.thelazydeveloper.posturr"
-VERSION="1.0.13"
+VERSION="1.1.0"
 MIN_MACOS="13.0"
 
 # Check for App Store build flag
@@ -54,8 +54,18 @@ mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
 # Compile Swift code
-echo "Compiling main.swift..."
+echo "Compiling Swift sources..."
 echo "Building universal binary (arm64 + x86_64)..."
+
+# Get all Swift source files
+SOURCES_DIR="$SCRIPT_DIR/Sources"
+SWIFT_FILES=$(find "$SOURCES_DIR" -name "*.swift" -type f | sort)
+
+echo "Source files:"
+for f in $SWIFT_FILES; do
+    echo "  - $(basename "$f")"
+done
+echo ""
 
 swiftc \
     -O \
@@ -68,7 +78,7 @@ swiftc \
     -framework Vision \
     -framework CoreImage \
     -o "$MACOS_DIR/${APP_NAME}_arm64" \
-    "$SCRIPT_DIR/main.swift"
+    $SWIFT_FILES
 
 swiftc \
     -O \
@@ -81,7 +91,7 @@ swiftc \
     -framework Vision \
     -framework CoreImage \
     -o "$MACOS_DIR/${APP_NAME}_x86" \
-    "$SCRIPT_DIR/main.swift"
+    $SWIFT_FILES
 
 # Create universal binary
 lipo -create -output "$MACOS_DIR/$APP_NAME" \
