@@ -112,14 +112,11 @@ After upload:
 
 ## Version Bumping
 
-Update version in BOTH files before releasing:
-- `build.sh` - VERSION variable
-- `appstore-release.sh` - VERSION variable
+Update version in `build.sh` (VERSION variable) before releasing.
 
 ## Key Files
 
 - `main.swift` - All application code
 - `build.sh` - Build script with App Store support
 - `release.sh` - Full GitHub release automation
-- `appstore-release.sh` - App Store packaging reference
 - `PRIVACY.md` - Privacy policy for App Store
