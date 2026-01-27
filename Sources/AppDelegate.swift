@@ -114,6 +114,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var isCurrentlySlouching = false
     var isCurrentlyAway = false
 
+    // Separate intensities for different concerns (0.0 to 1.0)
+    var postureWarningIntensity: CGFloat = 0  // Posture-based warning
+    // Privacy blur is derived from isCurrentlyAway (always full blur when away)
+
     // Blur onset delay
     var warningOnsetDelay: Double = 0.0
     var badPostureStartTime: Date?
@@ -1024,23 +1028,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func updateBlur() {
-        // "Blur when away" always uses actual blur for privacy, regardless of warning style
-        let useBlurForPrivacy = isCurrentlyAway
+        // Two independent concerns:
+        // 1. Privacy blur: full blur when away (always uses blur overlay)
+        // 2. Posture warning: user's chosen style (blur/vignette/border)
 
-        // Update warning overlay if not in blur mode (and not away)
-        if warningMode != .blur && !useBlurForPrivacy {
-            warningOverlayManager.targetIntensity = CGFloat(targetBlurRadius) / 64.0
-            warningOverlayManager.updateWarning()
-            return
-        }
+        let privacyBlurIntensity: CGFloat = isCurrentlyAway ? 1.0 : 0.0
 
-        // Clear warning overlay when using blur (either blur mode or away for privacy)
-        if warningMode != .blur && useBlurForPrivacy {
+        // Compute target blur radius from both sources
+        if warningMode == .blur {
+            // Both privacy and posture use blur - take the higher value
+            let combinedIntensity = max(privacyBlurIntensity, postureWarningIntensity)
+            targetBlurRadius = Int32(combinedIntensity * 64)
+            // Ensure warning overlay is cleared
             warningOverlayManager.targetIntensity = 0
             warningOverlayManager.updateWarning()
+        } else {
+            // Privacy uses blur, posture uses vignette/border
+            targetBlurRadius = Int32(privacyBlurIntensity * 64)
+            warningOverlayManager.targetIntensity = postureWarningIntensity
+            warningOverlayManager.updateWarning()
         }
 
-        // Blur logic (used for blur warning mode OR when away for privacy)
+        // Animate blur toward target
         if currentBlurRadius < targetBlurRadius {
             currentBlurRadius = min(currentBlurRadius + 1, targetBlurRadius)
         } else if currentBlurRadius > targetBlurRadius {
@@ -1138,9 +1147,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        if consecutiveNoDetectionFrames >= awayFrameThreshold {
+        if consecutiveNoDetectionFrames >= awayFrameThreshold && !isCurrentlyAway {
             isCurrentlyAway = true
-            targetBlurRadius = 64
 
             DispatchQueue.main.async {
                 self.statusMenuItem.title = "Status: Away"
@@ -1226,12 +1234,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let remainingRange = max(0.01, postureRange - deadZoneThreshold)
                 let severity = min(1.0, max(0.0, pastDeadZone / remainingRange))
 
-                // Intensity controls the curve: higher = blur ramps up faster
+                // Intensity controls the curve: higher = warning ramps up faster
                 // pow(severity, 1/intensity): intensity 2.0 = aggressive, 0.5 = gentle
                 let adjustedSeverity = pow(severity, 1.0 / intensity)
 
-                let blurIntensity = Int32(adjustedSeverity * 64)
-                targetBlurRadius = min(64, blurIntensity)
+                postureWarningIntensity = adjustedSeverity
 
                 DispatchQueue.main.async {
                     self.statusMenuItem.title = "Status: Slouching"
@@ -1245,7 +1252,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Reset the bad posture start time when posture improves
             badPostureStartTime = nil
 
-            targetBlurRadius = 0
+            postureWarningIntensity = 0
 
             if consecutiveGoodFrames >= frameThreshold {
                 isCurrentlySlouching = false

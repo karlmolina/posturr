@@ -135,6 +135,15 @@ pkill -x Posturr; rm -rf /Applications/Posturr.app && cp -r build/Posturr.app /A
 
 This prevents file locking issues and permission errors from code signing.
 
+## Workflow for Bug Fixes and Features
+
+**IMPORTANT: Never commit or push until the user explicitly asks you to.** After making changes:
+1. Build and install the app
+2. Wait for the user to test
+3. Only commit when the user confirms it works or explicitly asks to commit
+
+**Never comment on GitHub issues** until the user explicitly asks you to. The user will handle acknowledgments and issue comments.
+
 ## Version Bumping
 
 Update version in `build.sh` (VERSION variable) before releasing.
