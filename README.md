@@ -8,6 +8,17 @@ Posturr uses your Mac's camera and Apple's Vision framework to monitor your post
 
 **Join our Discord** to share feedback, get help, suggest features, and connect with other Posturr users!
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/posturr_menubar.jpg" width="280" alt="Menu Bar">
+  <img src="assets/posturr_settings.jpg" width="400" alt="Settings">
+</p>
+
+<p align="center">
+  <img src="assets/posturr_analytics.jpg" width="500" alt="Analytics Dashboard">
+</p>
+
 ## Features
 
 - **Real-time posture detection** - Uses Apple's Vision framework for body pose and face tracking
