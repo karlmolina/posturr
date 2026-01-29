@@ -147,6 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         syncCameraToState()
         if !newState.isActive {
             targetBlurRadius = 0
+            postureWarningIntensity = 0  // Clear any active posture warning
         }
         syncUIToState()
     }
