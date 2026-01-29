@@ -26,6 +26,30 @@ enum WarningMode: String, CaseIterable {
     }
 }
 
+// MARK: - Detection Mode
+
+enum DetectionMode: String, CaseIterable {
+    case responsive = "responsive"  // 10 fps - best accuracy (default)
+    case balanced = "balanced"      // 4 fps - good balance
+    case performance = "performance" // 2 fps - best battery life
+
+    var frameRate: Double {
+        switch self {
+        case .responsive: return 10.0
+        case .balanced: return 4.0
+        case .performance: return 2.0
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .responsive: return "Responsive"
+        case .balanced: return "Balanced"
+        case .performance: return "Performance"
+        }
+    }
+}
+
 // MARK: - Settings Keys
 enum SettingsKeys {
     static let intensity = "intensity"
@@ -42,6 +66,7 @@ enum SettingsKeys {
     static let toggleShortcutEnabled = "toggleShortcutEnabled"
     static let toggleShortcutKeyCode = "toggleShortcutKeyCode"
     static let toggleShortcutModifiers = "toggleShortcutModifiers"
+    static let detectionMode = "detectionMode"
 }
 
 // MARK: - Keyboard Shortcut

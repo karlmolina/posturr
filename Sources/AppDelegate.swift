@@ -82,6 +82,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var blurWhenAway = false
     var showInDock = false
     var pauseOnTheGo = false
+    var detectionMode: DetectionMode = .balanced
     var settingsWindowController = SettingsWindowController()
     var analyticsWindowController: AnalyticsWindowController?
 
@@ -131,7 +132,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Frame throttling
     var lastFrameTime: Date = .distantPast
-    let frameInterval: TimeInterval = 0.1
+    // Use fast polling (10 fps) when slouching for quick recovery detection
+    var frameInterval: TimeInterval {
+        isCurrentlySlouching ? 0.1 : (1.0 / detectionMode.frameRate)
+    }
 
     var cameraSetupComplete = false
     var waitingForPermission = false
@@ -468,6 +472,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         state = .paused(.noProfile)
     }
 
+    func applyDetectionMode() {
+        guard let session = captureSession else { return }
+
+        session.beginConfiguration()
+
+        // Configure camera to capture at lower frame rate
+        if let input = session.inputs.first as? AVCaptureDeviceInput {
+            let device = input.device
+            configureDeviceFrameRate(device)
+        }
+
+        session.commitConfiguration()
+    }
+
+    private func configureDeviceFrameRate(_ device: AVCaptureDevice) {
+        let targetFrameRate = detectionMode.frameRate
+
+        // Find the lowest supported frame rate across all ranges
+        var minSupported = 30.0  // Default fallback
+        for range in device.activeFormat.videoSupportedFrameRateRanges {
+            minSupported = min(minSupported, range.minFrameRate)
+        }
+
+        // Clamp to supported range - can't go below what camera supports
+        let actualFrameRate = max(targetFrameRate, minSupported)
+
+        // Frame duration = 1/fps
+        let frameDuration = CMTimeMake(value: 1, timescale: Int32(actualFrameRate))
+
+        do {
+            try device.lockForConfiguration()
+            device.activeVideoMinFrameDuration = frameDuration
+            device.activeVideoMaxFrameDuration = frameDuration
+            device.unlockForConfiguration()
+        } catch {
+            print("[Camera] Failed to set frame rate: \(error)")
+        }
+    }
+
     private func switchCameraInput() {
         let wasRunning = captureSession?.isRunning ?? false
         print("[Camera] switchCameraInput called, wasRunning=\(wasRunning), selectedCameraID=\(selectedCameraID ?? "nil")")
@@ -530,7 +573,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func setupCamera() {
         captureSession = AVCaptureSession()
-        captureSession?.sessionPreset = .low
+        captureSession?.sessionPreset = .cif352x288  // Low resolution for CPU efficiency
 
         let cameras = getAvailableCameras()
         let camera: AVCaptureDevice?
@@ -563,6 +606,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         DispatchQueue.global(qos: .userInitiated).async {
             self.captureSession?.startRunning()
+            // Must configure frame rate AFTER session starts on macOS
+            // Otherwise the session preset overrides our settings
+            DispatchQueue.main.async {
+                self.applyDetectionMode()
+            }
         }
     }
 
@@ -874,6 +922,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         defaults.set(blurWhenAway, forKey: SettingsKeys.blurWhenAway)
         defaults.set(showInDock, forKey: SettingsKeys.showInDock)
         defaults.set(pauseOnTheGo, forKey: SettingsKeys.pauseOnTheGo)
+        defaults.set(detectionMode.rawValue, forKey: SettingsKeys.detectionMode)
         defaults.set(warningMode.rawValue, forKey: SettingsKeys.warningMode)
         defaults.set(warningOnsetDelay, forKey: SettingsKeys.warningOnsetDelay)
         defaults.set(toggleShortcutEnabled, forKey: SettingsKeys.toggleShortcutEnabled)
@@ -900,6 +949,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         blurWhenAway = defaults.bool(forKey: SettingsKeys.blurWhenAway)
         showInDock = defaults.bool(forKey: SettingsKeys.showInDock)
         pauseOnTheGo = defaults.bool(forKey: SettingsKeys.pauseOnTheGo)
+        if let modeString = defaults.string(forKey: SettingsKeys.detectionMode),
+           let mode = DetectionMode(rawValue: modeString) {
+            detectionMode = mode
+        }
         selectedCameraID = defaults.string(forKey: SettingsKeys.lastCameraID)
         if let modeString = defaults.string(forKey: SettingsKeys.warningMode),
            let mode = WarningMode(rawValue: modeString) {

@@ -271,6 +271,9 @@ struct SettingsView: View {
     @State private var launchAtLogin: Bool = false
     @State private var toggleShortcutEnabled: Bool = true
     @State private var toggleShortcut: KeyboardShortcut = .defaultShortcut
+    @State private var detectionModeSlider: Double = 0
+
+    let detectionModes: [DetectionMode] = [.responsive, .balanced, .performance]
 
     let intensityValues: [Double] = [0.08, 0.15, 0.35, 0.65, 1.2]
     let intensityLabels = ["Gentle", "Easy", "Medium", "Firm", "Aggressive"]
@@ -449,6 +452,25 @@ struct SettingsView: View {
                                 }
                             }
                         }
+
+                        SectionCard("Detection", icon: "gauge.with.dots.needle.33percent") {
+                            LabeledSlider(
+                                title: "Mode",
+                                helpText: "Balance between responsiveness and battery life. Responsive mode detects posture changes quickly. Performance mode uses less CPU and battery.",
+                                value: $detectionModeSlider,
+                                range: 0...2,
+                                step: 1,
+                                leftLabel: "Responsive",
+                                rightLabel: "Performance",
+                                valueLabel: detectionModes[Int(detectionModeSlider)].displayName
+                            )
+                            .onChange(of: detectionModeSlider) { newValue in
+                                let index = Int(newValue)
+                                appDelegate.detectionMode = detectionModes[index]
+                                appDelegate.saveSettings()
+                                appDelegate.applyDetectionMode()
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity)
 
@@ -602,6 +624,7 @@ struct SettingsView: View {
         warningOnsetDelay = appDelegate.warningOnsetDelay
         toggleShortcutEnabled = appDelegate.toggleShortcutEnabled
         toggleShortcut = appDelegate.toggleShortcut
+        detectionModeSlider = Double(detectionModes.firstIndex(of: appDelegate.detectionMode) ?? 0)
 
         // Set slider indices based on loaded values
         intensitySlider = Double(intensityValues.firstIndex(of: intensity) ?? 2)
